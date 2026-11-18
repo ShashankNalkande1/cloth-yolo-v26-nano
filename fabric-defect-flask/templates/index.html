@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fabric Defect Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== TYPEWRITER / MONO LIGHT THEME — FABRIC FOCUSED ===== */
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'IBM Plex Mono', 'Courier Prime', 'Courier New', monospace;
+      background: #fafaf7;
+      color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 40px;
+      margin: 0;
+      min-height: 100vh;
+      /* subtle woven-fabric texture feel via tiny repeating gradient */
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 6px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 6px),
+        radial-gradient(circle at 15% 8%, rgba(255, 237, 213, 0.45), transparent 38%),
+        radial-gradient(circle at 88% 92%, rgba(219, 234, 254, 0.45), transparent 38%);
+    }
+
+    /* ===== Top bar ===== */
+    .top-bar {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+    .top-bar a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      color: #1a1a1a;
+      background: #ffffff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1.5px solid #1a1a1a;
+      font-size: 0.85rem;
+      box-shadow: 3px 3px 0 #1a1a1a;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      font-family: inherit;
+    }
+    .top-bar a:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #1a1a1a;
+      background: #fef3c7;
+    }
+    .top-bar a:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #1a1a1a;
+    }
+    .top-bar svg { width: 16px; height: 16px; fill: #1a1a1a; flex-shrink: 0; }
+
+    /* ===== Fabric-branded header ===== */
+    .brand {
+      text-align: center;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1a1a;
+      color: #fef3c7;
+      padding: 6px 16px;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+    }
+    .brand-badge svg { width: 15px; height: 15px; fill: #fef3c7; }
+    h2 {
+      margin: 0;
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #1a1a1a;
+      text-align: center;
+      line-height: 1.25;
+    }
+    .subtitle {
+      font-size: 0.82rem;
+      color: #52525b;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ===== Defect class chips (so it's obvious what it detects) ===== */
+    .defect-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 14px 0 22px;
+      max-width: 700px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #ffffff;
+      border: 1.5px solid #1a1a1a;
+      border-radius: 30px;
+      padding: 5px 13px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      box-shadow: 2px 2px 0 #1a1a1a;
+    }
+    .chip .swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 1.5px solid #1a1a1a;
+      display: inline-block;
+    }
+    .chip.hole .swatch { background: #ef4444; }
+    .chip.oil  .swatch { background: #eab308; }
+    .chip.slub .swatch { background: #38bdf8; }
+    .chip.snag .swatch { background: #22c55e; }
+
+    /* ===== Controls ===== */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    button, input[type="file"] {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #1a1a1a;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.88rem;
+      background: #ffffff;
+      color: #1a1a1a;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      box-shadow: 3px 3px 0 #1a1a1a;
+      font-family: inherit;
+    }
+    button:hover, input[type="file"]:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #1a1a1a;
+      background: #fef3c7;
+    }
+    button:active, input[type="file"]:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #1a1a1a;
+    }
+    button.stop {
+      background: #fecaca;
+      border-color: #991b1b;
+      color: #7f1d1d;
+      box-shadow: 3px 3px 0 #991b1b;
+    }
+    button.stop:hover { background: #fca5a5; box-shadow: 4px 4px 0 #991b1b; }
+    input[type="file"] { padding: 9px 14px; font-weight: 500; }
+    input[type="file"]::file-selector-button {
+      background: #e0e7ff;
+      border: 1.5px solid #1a1a1a;
+      border-radius: 6px;
+      padding: 5px 12px;
+      margin-right: 12px;
+      font-weight: 700;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      font-size: 0.82rem;
+    }
+    input[type="file"]::file-selector-button:hover { background: #c7d2fe; }
+
+    /* ===== Stage with woven-corner fabric hint ===== */
+    .stage-wrap {
+      position: relative;
+      max-width: 700px;
+      width: 100%;
+    }
+    .stage-label {
+      position: absolute;
+      top: -11px;
+      left: 18px;
+      background: #1a1a1a;
+      color: #fef3c7;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      z-index: 2;
+    }
+    .stage {
+      position: relative;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #1a1a1a;
+      background: #ffffff;
+      box-shadow: 6px 6px 0 #1a1a1a;
+    }
+    video, img, canvas { width: 100%; display: block; }
+    video { background: #f4f4f5; min-height: 280px; object-fit: cover; }
+    img { background: #fafafa; max-height: 500px; object-fit: contain; }
+    canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+    #status {
+      margin-top: 20px;
+      color: #1a1a1a;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      background: #ffffff;
+      border: 1.5px solid #1a1a1a;
+      padding: 12px 22px;
+      border-radius: 8px;
+      min-height: 52px;
+      max-width: 700px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 3px 3px 0 #1a1a1a;
+      word-break: break-word;
+    }
+
+    /* ===== "Why this model?" button ===== */
+    .why-btn-wrap {
+      margin-top: 22px;
+      display: flex;
+      justify-content: center;
+      max-width: 700px;
+      width: 100%;
+    }
+    .why-btn {
+      background: #fde68a;
+      border: 2px solid #1a1a1a;
+      padding: 12px 26px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 4px 4px 0 #1a1a1a;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: inherit;
+      color: #1a1a1a;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+    }
+    .why-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 #1a1a1a;
+      background: #fcd34d;
+    }
+    .why-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 #1a1a1a;
+    }
+
+    /* ===== Modal ===== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 26, 0.55);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .modal-backdrop.open { display: flex; align-items: flex-start; justify-content: center; }
+
+    .modal {
+      background: #ffffff;
+      border: 2.5px solid #1a1a1a;
+      border-radius: 14px;
+      box-shadow: 8px 8px 0 #1a1a1a;
+      max-width: 720px;
+      width: 100%;
+      margin: 40px auto;
+      padding: 32px 30px;
+      position: relative;
+      font-family: inherit;
+      animation: popIn 0.22s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.95) translateY(-8px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: #fee2e2;
+      border: 2px solid #1a1a1a;
+      border-radius: 6px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 2px 2px 0 #1a1a1a;
+      transition: transform 0.1s, box-shadow 0.1s;
+      font-family: inherit;
+      color: #1a1a1a;
+    }
+    .modal-close:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #1a1a1a; }
+    .modal-close:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 #1a1a1a; }
+
+    .modal h3 {
+      margin: 0 0 6px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .modal .tagline {
+      font-size: 0.85rem;
+      color: #52525b;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 1.5px dashed #d4d4d8;
+    }
+    .modal p {
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: #27272a;
+      margin: 0 0 16px;
+    }
+    .modal p strong { color: #1a1a1a; font-weight: 700; }
+    .modal code {
+      background: #f4f4f5;
+      border: 1px solid #d4d4d8;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #7c2d12;
+    }
+    .modal .callout {
+      background: #fef3c7;
+      border-left: 4px solid #d97706;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      margin: 18px 0;
+      color: #1a1a1a;
+    }
+    .modal .callout strong { color: #92400e; }
+    .modal .impact {
+      background: #ecfccb;
+      border-left: 4px solid #65a30d;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      margin: 18px 0;
+      color: #1a1a1a;
+    }
+    .modal .impact strong { color: #3f6212; }
+    .modal .signoff {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1.5px dashed #d4d4d8;
+      font-size: 0.85rem;
+      color: #52525b;
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 18px 14px 30px; }
+      h2 { font-size: 1.3rem; }
+      .controls { flex-direction: column; align-items: stretch; }
+      button, input[type="file"] { width: 100%; }
+      .top-bar { justify-content: center; }
+      .modal { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== LinkedIn + GitHub top bar ===== -->
+  <div class="top-bar">
+    <a href="https://www.linkedin.com/in/YOUR-LINKEDIN-ID/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C0.792 0 0 0.774 0 1.729v20.542C0 23.227 0.792 24 1.771 24h20.451c0.979 0 1.771-0.773 1.771-1.729V1.729C24 0.774 23.204 0 22.225 0z"/>
+      </svg>
+      LinkedIn
+    </a>
+    <a href="https://github.com/YOUR-GITHUB-ID" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.468-2.38 1.235-3.22-.123-.3-.535-1.52.117-3.16 0 0 1.008-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.006 2.04.138 3 .405 2.29-1.552 3.297-1.23 3.297-1.23.653 1.64.242 2.86.12 3.16.768.84 1.233 1.91 1.233 3.22 0 4.61-2.804 5.62-5.476 5.92.43.37.824 1.102.824 2.22 0 1.602-.015 2.894-.015 3.287 0 .322.216.694.825.576C20.565 21.796 24 17.3 24 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      GitHub
+    </a>
+  </div>
+
+  <!-- ===== Fabric-branded header ===== -->
+  <div class="brand">
+    <div class="brand-badge">
+      <!-- spool/thread icon -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8 2 5 4 5 7v10c0 3 3 5 7 5s7-2 7-5V7c0-3-3-5-7-5zm0 2c3 0 5 1.3 5 3s-2 3-5 3-5-1.3-5-3 2-3 5-3zm0 16c-3 0-5-1.3-5-3v-1.5c1.3 1 3.1 1.5 5 1.5s3.7-.5 5-1.5V17c0 1.7-2 3-5 3zm0-5c-3 0-5-1.3-5-3v-1.5c1.3 1 3.1 1.5 5 1.5s3.7-.5 5-1.5V12c0 1.7-2 3-5 3z"/>
+      </svg>
+      Fabric QC · AI Inspector
+    </div>
+    <h2>Fabric Defect Detection</h2>
+    <div class="subtitle">// YOLO26 Nano · feasibility build · upload a cloth photo or use live camera</div>
+  </div>
+
+  <!-- ===== Defect class chips ===== -->
+  <div class="defect-chips">
+    <span class="chip hole"><span class="swatch"></span>hole</span>
+    <span class="chip oil"><span class="swatch"></span>oil</span>
+    <span class="chip slub"><span class="swatch"></span>slub</span>
+    <span class="chip snag"><span class="swatch"></span>snag</span>
+  </div>
+
+  <div class="controls">
+    <input type="file" id="fileInput" accept="image/*" />
+    <button id="camBtn" onclick="toggleCamera()">Start Live Camera</button>
+  </div>
+
+  <!-- ===== Stage with fabric label ===== -->
+  <div class="stage-wrap">
+    <span class="stage-label">fabric sample</span>
+    <div class="stage">
+      <video id="video" autoplay playsinline style="display:none;"></video>
+      <img id="preview" style="display:none;" />
+      <canvas id="overlay"></canvas>
+    </div>
+  </div>
+  <div id="status">Upload a fabric image or start live camera to inspect for defects.</div>
+
+  <!-- ===== "Why this model?" button ===== -->
+  <div class="why-btn-wrap">
+    <button class="why-btn" onclick="openWhyModal()">
+      💡 Why this model? — read the story
+    </button>
+  </div>
+
+  <!-- ===== Model info section ===== -->
+  <div class="model-info" style="max-width:700px;width:100%;margin-top:22px;background:#fff;border:1.5px solid #1a1a1a;border-radius:12px;padding:22px 24px;box-shadow:4px 4px 0 #1a1a1a;">
+    <h3 style="margin:0 0 12px;font-size:1.1rem;font-weight:700;color:#1a1a1a;">About this model <span style="display:inline-block;background:#e0e7ff;color:#1e40af;font-weight:700;padding:2px 10px;border-radius:20px;font-size:0.78rem;border:1.5px solid #1a1a1a;">YOLO26n · test build</span></h3>
+    <p style="margin:0 0 12px;font-size:0.88rem;line-height:1.6;color:#27272a;">
+      A <strong>small, lightweight fabric-defect model</strong> built purely to test the level and feasibility of the inspection pipeline — not a production-grade detector. Detects 4 defect classes: <strong>hole, oil, slub, snag</strong>.
+    </p>
+    <p style="margin:0 0 12px;font-size:0.88rem;line-height:1.6;color:#27272a;">
+      <strong>Formats:</strong> <code style="background:#f4f4f5;border:1px solid #d4d4d8;padding:1px 6px;border-radius:4px;font-size:0.82em;">~5 MB .pt</code> (PyTorch — retrain/export) · <code style="background:#f4f4f5;border:1px solid #d4d4d8;padding:1px 6px;border-radius:4px;font-size:0.82em;">~9 MB .onnx</code> (portable — runs anywhere, no PyTorch).
+    </p>
+    <p style="margin:0;font-size:0.88rem;line-height:1.6;color:#27272a;">
+      Intentionally tiny → <strong>cheap to host on free tier</strong> (Render / Railway / HF Spaces), no GPU needed. <strong>Next step:</strong> train a bigger, more accurate model for Arduino / edge hardware deployment.
+    </p>
+  </div>
+
+  <!-- ===== Modal ===== -->
+  <div class="modal-backdrop" id="whyModal" onclick="if(event.target===this) closeWhyModal()">
+    <div class="modal" role="dialog" aria-labelledby="whyTitle" aria-modal="true">
+      <button class="modal-close" onclick="closeWhyModal()" aria-label="Close">✕</button>
+      <h3 id="whyTitle">Why this model? — the honest story</h3>
+      <div class="tagline">// a feasibility build, not a product</div>
+
+      <p>
+        Okay, let me be straight with you. I didn't train a big, fancy model here — and that was <strong>on purpose</strong>.
+      </p>
+
+      <p>
+        My whole goal with this fabric inspection build was to answer one simple question: <strong>"Does this pipeline even work?"</strong> Camera → defect detection → alert. If that basic loop works on the cheapest possible setup, then I know the idea is real. Accuracy can come later.
+      </p>
+
+      <div class="callout">
+        <strong>So why YOLO26n (Nano) and not a bigger one?</strong><br>
+        A bigger variant — <code>s</code>, <code>m</code>, <code>l</code>, or <code>x</code> — means GPU training and GPU hosting. For a feasibility test, that's just burning money to answer a question a small model can already answer. Nano gave me the same signal at a fraction of the cost.
+      </div>
+
+      <p>
+        The YOLO26 family launched on <strong>14 January 2026</strong> — and Ultralytics dropped <em>all</em> size variants on the same day. Nano is the smallest (~2.4M params), the fastest, and was built specifically for CPU, mobile, and edge chips like the ESP32-S3 or Raspberry Pi. That's exactly the audience I wanted to prove this for.
+      </p>
+
+      <p>
+        The model itself is tiny — <code>~5 MB .pt</code> and <code>~9 MB .onnx</code>. That means it runs comfortably on a <strong>free Render / Railway / Hugging Face Spaces</strong> instance with zero GPU. No credit card, no cloud bill, no cold-start drama.
+      </p>
+
+      <p>
+        Right now it detects four fabric defects: <strong>hole, oil, slub, snag</strong>. Not perfect, not production-ready — but it proves the full loop works end-to-end.
+      </p>
+
+      <div class="impact">
+        <strong>The impact:</strong> The fabric inspection pipeline is live on free infrastructure today. Next step is to train a heavier, more accurate model and push it onto Arduino / ESP32-S3 edge hardware for true on-device defect detection. Same code, same flow — just a stronger brain in the middle.
+      </div>
+
+      <p>
+        That's really it. This isn't a flex — it's a proof. The small model was the whole point: <em>show it works, cheaply, before investing in the big one.</em>
+      </p>
+
+      <div class="signoff">
+        — Built as a fabric QC feasibility test. Accuracy upgrade comes next. ✌️
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== Modal open/close ===== */
+    function openWhyModal() {
+      document.getElementById('whyModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeWhyModal() {
+      document.getElementById('whyModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeWhyModal();
+    });
+
+    /* ===== UNCHANGED LOGIC — exactly as your original ===== */
+    const video = document.getElementById("video");
+    const preview = document.getElementById("preview");
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const camBtn = document.getElementById("camBtn");
+
+    let stream = null;
+    let loopTimer = null;
+    const COLORS = { hole: "#ef4444", oil: "#eab308", slub: "#38bdf8", snag: "#22c55e" };
+
+    function drawBoxes(detections, width, height) {
+      canvas.width = width;
+      canvas.height = height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.lineWidth = 3;
+      ctx.font = "bold 16px system-ui";
+
+      detections.forEach(d => {
+        const [x1, y1, x2, y2] = d.bbox;
+        const color = COLORS[d.defect] || "#10b981";
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+        const label = `${d.defect} ${(d.confidence * 100).toFixed(0)}%`;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, Math.max(0, y1 - 24), ctx.measureText(label).width + 12, 24);
+        ctx.fillStyle = "#000";
+        ctx.fillText(label, x1 + 6, Math.max(17, y1 - 7));
+      });
+    }
+
+    async function sendBlob(blob, width, height) {
+      const form = new FormData();
+      form.append("file", blob, "frame.jpg");
+      const res = await fetch("/predict", { method: "POST", body: form });
+      const data = await res.json();
+      drawBoxes(data.detections || [], width, height);
+      statusEl.textContent = data.count
+        ? "Detected: " + data.detections.map(d => `${d.defect} (${(d.confidence * 100).toFixed(0)}%)`).join(", ")
+        : "No defects detected";
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      stopCamera();
+      const file = e.target.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+      video.style.display = "none";
+      preview.onload = () => sendBlob(file, preview.naturalWidth, preview.naturalHeight);
+    });
+
+    async function toggleCamera() {
+      if (stream) return stopCamera();
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+      video.style.display = "block";
+      preview.style.display = "none";
+      camBtn.textContent = "Stop Camera";
+      camBtn.classList.add("stop");
+
+      const offscreen = document.createElement("canvas");
+      loopTimer = setInterval(() => {
+        if (!video.videoWidth) return;
+        offscreen.width = video.videoWidth;
+        offscreen.height = video.videoHeight;
+        offscreen.getContext("2d").drawImage(video, 0, 0);
+        offscreen.toBlob(blob => sendBlob(blob, video.videoWidth, video.videoHeight), "image/jpeg", 0.7);
+      }, 350);
+    }
+
+    function stopCamera() {
+      if (loopTimer) clearInterval(loopTimer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null;
+      camBtn.textContent = "Start Live Camera";
+      camBtn.classList.remove("stop");
+    }
+  </script>
+</body>
+</html>
