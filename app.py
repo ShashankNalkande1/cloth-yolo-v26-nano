@@ -38,7 +38,7 @@ def predict():
     blob = cv2.cvtColor(blob, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     blob = np.transpose(blob, (2, 0, 1))[None, ...]
 
-    # ONNX Inference -> Output shape (1, 8, 8400) -> transpose to (8400, 8)
+    # omnx Inference -> output shape (1, 8, 8400) -> transpose to (8400, 8)
     preds = session.run(None, {input_name: blob})[0][0].T
 
     boxes, scores, class_ids = [], [], []
