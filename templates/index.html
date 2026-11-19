@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fabric Defect Detection</title>
+  <title>Fabric Defect Detection · Arduino / Raspberry Pi close‑up</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +21,6 @@
       padding: 28px 20px 40px;
       margin: 0;
       min-height: 100vh;
-      /* subtle woven-fabric texture feel via tiny repeating gradient */
       background-image:
         repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 6px),
         repeating-linear-gradient(90deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 6px),
@@ -69,7 +68,7 @@
     /* ===== Fabric-branded header ===== */
     .brand {
       text-align: center;
-      margin-bottom: 18px;
+      margin-bottom: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -106,13 +105,34 @@
       font-weight: 500;
     }
 
-    /* ===== Defect class chips (so it's obvious what it detects) ===== */
+    /* ===== HONESTY BANNER — not perfect, trained for edge ===== */
+    .honesty-banner {
+      max-width: 700px;
+      width: 100%;
+      background: #fef9c3;
+      border: 2px solid #1a1a1a;
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin: 8px 0 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 4px 4px 0 #1a1a1a;
+      line-height: 1.5;
+    }
+    .honesty-banner .icon { font-size: 1.3rem; flex-shrink: 0; }
+    .honesty-banner strong { color: #92400e; }
+
+    /* ===== Defect class chips ===== */
     .defect-chips {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 8px;
-      margin: 14px 0 22px;
+      margin: 8px 0 16px;
       max-width: 700px;
     }
     .chip {
@@ -144,7 +164,7 @@
     .controls {
       display: flex;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
@@ -228,8 +248,67 @@
     img { background: #fafafa; max-height: 500px; object-fit: contain; }
     canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
 
+    /* ===== LOADING BAR — directly under image ===== */
+    .loading-wrap {
+      max-width: 700px;
+      width: 100%;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .loading-bar-track {
+      width: 100%;
+      height: 18px;
+      background: #e4e4e7;
+      border: 2px solid #1a1a1a;
+      border-radius: 30px;
+      overflow: hidden;
+      box-shadow: 3px 3px 0 #1a1a1a;
+      position: relative;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: repeating-linear-gradient(
+        -45deg,
+        #fbbf24,
+        #fbbf24 10px,
+        #f59e0b 10px,
+        #f59e0b 20px
+      );
+      transition: width 0.25s ease;
+      border-radius: 30px 0 0 30px;
+    }
+    .loading-bar-fill.indeterminate {
+      width: 100% !important;
+      background: repeating-linear-gradient(
+        -45deg,
+        #fbbf24,
+        #fbbf24 10px,
+        #f59e0b 10px,
+        #f59e0b 20px
+      );
+      animation: slideStripes 0.8s linear infinite;
+      border-radius: 30px;
+    }
+    @keyframes slideStripes {
+      0%   { background-position: 0 0; }
+      100% { background-position: 40px 0; }
+    }
+    .loading-text {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #52525b;
+      letter-spacing: 0.04em;
+      min-height: 18px;
+    }
+    .loading-text.active { color: #b45309; }
+
+    /* ===== Status box ===== */
     #status {
-      margin-top: 20px;
+      margin-top: 12px;
       color: #1a1a1a;
       font-size: 0.85rem;
       font-weight: 500;
@@ -399,6 +478,7 @@
       button, input[type="file"] { width: 100%; }
       .top-bar { justify-content: center; }
       .modal { padding: 24px 20px; }
+      .honesty-banner { font-size: 0.75rem; padding: 10px 14px; }
     }
   </style>
 </head>
@@ -423,14 +503,23 @@
   <!-- ===== Fabric-branded header ===== -->
   <div class="brand">
     <div class="brand-badge">
-      <!-- spool/thread icon -->
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2C8 2 5 4 5 7v10c0 3 3 5 7 5s7-2 7-5V7c0-3-3-5-7-5zm0 2c3 0 5 1.3 5 3s-2 3-5 3-5-1.3-5-3 2-3 5-3zm0 16c-3 0-5-1.3-5-3v-1.5c1.3 1 3.1 1.5 5 1.5s3.7-.5 5-1.5V17c0 1.7-2 3-5 3zm0-5c-3 0-5-1.3-5-3v-1.5c1.3 1 3.1 1.5 5 1.5s3.7-.5 5-1.5V12c0 1.7-2 3-5 3z"/>
       </svg>
       Fabric QC · AI Inspector
     </div>
     <h2>Fabric Defect Detection</h2>
-    <div class="subtitle">// YOLO26 Nano · feasibility build · upload a cloth photo or use live camera</div>
+    <div class="subtitle">// YOLO26 Nano · close‑shot build for Arduino / Raspberry Pi edge</div>
+  </div>
+
+  <!-- ===== HONESTY BANNER — exactly what you asked ===== -->
+  <div class="honesty-banner">
+    <span class="icon">⚠️</span>
+    <div>
+      <strong>Not perfect — trained specifically for Arduino &amp; Raspberry Pi close‑shot images.</strong><br>
+      Upgrade to a bigger model is needed for real‑world production. This is a feasibility build.
+      render free tier is slow may take 5‑10s to load, but it works. No GPU needed.
+    </div>
   </div>
 
   <!-- ===== Defect class chips ===== -->
@@ -446,15 +535,24 @@
     <button id="camBtn" onclick="toggleCamera()">Start Live Camera</button>
   </div>
 
-  <!-- ===== Stage with fabric label ===== -->
+  <!-- ===== Stage ===== -->
   <div class="stage-wrap">
-    <span class="stage-label">fabric sample</span>
+    <span class="stage-label">fabric sample · close‑up</span>
     <div class="stage">
       <video id="video" autoplay playsinline style="display:none;"></video>
       <img id="preview" style="display:none;" />
       <canvas id="overlay"></canvas>
     </div>
   </div>
+
+  <!-- ===== LOADING BAR — directly under image ===== -->
+  <div class="loading-wrap">
+    <div class="loading-bar-track">
+      <div class="loading-bar-fill" id="loadingFill"></div>
+    </div>
+    <div class="loading-text" id="loadingText">idle — waiting for image</div>
+  </div>
+
   <div id="status">Upload a fabric image or start live camera to inspect for defects.</div>
 
   <!-- ===== "Why this model?" button ===== -->
@@ -466,15 +564,15 @@
 
   <!-- ===== Model info section ===== -->
   <div class="model-info" style="max-width:700px;width:100%;margin-top:22px;background:#fff;border:1.5px solid #1a1a1a;border-radius:12px;padding:22px 24px;box-shadow:4px 4px 0 #1a1a1a;">
-    <h3 style="margin:0 0 12px;font-size:1.1rem;font-weight:700;color:#1a1a1a;">About this model <span style="display:inline-block;background:#e0e7ff;color:#1e40af;font-weight:700;padding:2px 10px;border-radius:20px;font-size:0.78rem;border:1.5px solid #1a1a1a;">YOLO26n · test build</span></h3>
+    <h3 style="margin:0 0 12px;font-size:1.1rem;font-weight:700;color:#1a1a1a;">About this model <span style="display:inline-block;background:#e0e7ff;color:#1e40af;font-weight:700;padding:2px 10px;border-radius:20px;font-size:0.78rem;border:1.5px solid #1a1a1a;">YOLO26n · edge test build</span></h3>
     <p style="margin:0 0 12px;font-size:0.88rem;line-height:1.6;color:#27272a;">
-      A <strong>small, lightweight fabric-defect model</strong> built purely to test the level and feasibility of the inspection pipeline — not a production-grade detector. Detects 4 defect classes: <strong>hole, oil, slub, snag</strong>.
+      A <strong>tiny fabric‑defect model</strong> built purely to test the inspection pipeline on <strong>Arduino / Raspberry Pi class hardware</strong> — not a production‑grade detector. Detects 4 defect classes: <strong>hole, oil, slub, snag</strong>.
     </p>
     <p style="margin:0 0 12px;font-size:0.88rem;line-height:1.6;color:#27272a;">
       <strong>Formats:</strong> <code style="background:#f4f4f5;border:1px solid #d4d4d8;padding:1px 6px;border-radius:4px;font-size:0.82em;">~5 MB .pt</code> (PyTorch — retrain/export) · <code style="background:#f4f4f5;border:1px solid #d4d4d8;padding:1px 6px;border-radius:4px;font-size:0.82em;">~9 MB .onnx</code> (portable — runs anywhere, no PyTorch).
     </p>
     <p style="margin:0;font-size:0.88rem;line-height:1.6;color:#27272a;">
-      Intentionally tiny → <strong>cheap to host on free tier</strong> (Render / Railway / HF Spaces), no GPU needed. <strong>Next step:</strong> train a bigger, more accurate model for Arduino / edge hardware deployment.
+      Intentionally tiny → <strong>cheap to host on free tier</strong> (Render / Railway / HF Spaces), no GPU needed. <strong>Next step:</strong> train a bigger, more accurate model for real‑world close‑up defect detection.
     </p>
   </div>
 
@@ -483,35 +581,35 @@
     <div class="modal" role="dialog" aria-labelledby="whyTitle" aria-modal="true">
       <button class="modal-close" onclick="closeWhyModal()" aria-label="Close">✕</button>
       <h3 id="whyTitle">Why this model? — the honest story</h3>
-      <div class="tagline">// a feasibility build, not a product</div>
+      <div class="tagline">// a feasibility build for edge hardware</div>
 
       <p>
         Okay, let me be straight with you. I didn't train a big, fancy model here — and that was <strong>on purpose</strong>.
       </p>
 
       <p>
-        My whole goal with this fabric inspection build was to answer one simple question: <strong>"Does this pipeline even work?"</strong> Camera → defect detection → alert. If that basic loop works on the cheapest possible setup, then I know the idea is real. Accuracy can come later.
+        My whole goal with this fabric inspection build was to answer one simple question: <strong>"Does this pipeline even work on Arduino / Raspberry Pi close‑shot images?"</strong> Camera → defect detection → alert. If that basic loop works on the cheapest possible setup, then I know the idea is real. Accuracy can come later.
       </p>
 
       <div class="callout">
         <strong>So why YOLO26n (Nano) and not a bigger one?</strong><br>
-        A bigger variant — <code>s</code>, <code>m</code>, <code>l</code>, or <code>x</code> — means GPU training and GPU hosting. For a feasibility test, that's just burning money to answer a question a small model can already answer. Nano gave me the same signal at a fraction of the cost.
+        A bigger variant — <code>s</code>, <code>m</code>, <code>l</code>, or <code>x</code> — means GPU training and GPU hosting. For a feasibility test on edge devices, that's just burning money to answer a question a small model can already answer. Nano gave me the same signal at a fraction of the cost.
       </div>
 
       <p>
-        The YOLO26 family launched on <strong>14 January 2026</strong> — and Ultralytics dropped <em>all</em> size variants on the same day. Nano is the smallest (~2.4M params), the fastest, and was built specifically for CPU, mobile, and edge chips like the ESP32-S3 or Raspberry Pi. That's exactly the audience I wanted to prove this for.
+        The YOLO26 family launched on <strong>14 January 2026</strong> — and Ultralytics dropped <em>all</em> size variants on the same day. Nano is the smallest (~2.4M params), the fastest, and was built specifically for CPU, mobile, and edge chips like the ESP32‑S3 or Raspberry Pi. That's exactly the audience I wanted to prove this for.
       </p>
 
       <p>
-        The model itself is tiny — <code>~5 MB .pt</code> and <code>~9 MB .onnx</code>. That means it runs comfortably on a <strong>free Render / Railway / Hugging Face Spaces</strong> instance with zero GPU. No credit card, no cloud bill, no cold-start drama.
+        The model itself is tiny — <code>~5 MB .pt</code> and <code>~9 MB .onnx</code>. That means it runs comfortably on a <strong>free Render / Railway / Hugging Face Spaces</strong> instance with zero GPU. No credit card, no cloud bill, no cold‑start drama.
       </p>
 
       <p>
-        Right now it detects four fabric defects: <strong>hole, oil, slub, snag</strong>. Not perfect, not production-ready — but it proves the full loop works end-to-end.
+        Right now it detects four fabric defects: <strong>hole, oil, slub, snag</strong>. Not perfect, not production‑ready — but it proves the full loop works end‑to‑end on close‑shot images from low‑cost hardware.
       </p>
 
       <div class="impact">
-        <strong>The impact:</strong> The fabric inspection pipeline is live on free infrastructure today. Next step is to train a heavier, more accurate model and push it onto Arduino / ESP32-S3 edge hardware for true on-device defect detection. Same code, same flow — just a stronger brain in the middle.
+        <strong>The impact:</strong> The fabric inspection pipeline is live on free infrastructure today. Next step is to train a heavier, more accurate model and push it onto Arduino / ESP32‑S3 edge hardware for true on‑device defect detection. Same code, same flow — just a stronger brain in the middle.
       </div>
 
       <p>
@@ -519,7 +617,7 @@
       </p>
 
       <div class="signoff">
-        — Built as a fabric QC feasibility test. Accuracy upgrade comes next. ✌️
+        — Built as a fabric QC feasibility test for Arduino / Raspberry Pi close‑ups. Accuracy upgrade comes next. ✌️
       </div>
     </div>
   </div>
@@ -538,18 +636,56 @@
       if (e.key === 'Escape') closeWhyModal();
     });
 
-    /* ===== UNCHANGED LOGIC — exactly as your original ===== */
+    /* ===== DOM refs ===== */
     const video = document.getElementById("video");
     const preview = document.getElementById("preview");
     const canvas = document.getElementById("overlay");
     const ctx = canvas.getContext("2d");
     const statusEl = document.getElementById("status");
     const camBtn = document.getElementById("camBtn");
+    const fileInput = document.getElementById("fileInput");
+    const loadingFill = document.getElementById("loadingFill");
+    const loadingText = document.getElementById("loadingText");
 
     let stream = null;
     let loopTimer = null;
     const COLORS = { hole: "#ef4444", oil: "#eab308", slub: "#38bdf8", snag: "#22c55e" };
 
+    /* ===== LOADING HELPERS ===== */
+    function setLoadingIndeterminate(msg) {
+      loadingFill.classList.add("indeterminate");
+      loadingFill.style.width = "100%";
+      loadingText.textContent = msg || "analysing…";
+      loadingText.classList.add("active");
+    }
+    function setLoadingProgress(pct, msg) {
+      loadingFill.classList.remove("indeterminate");
+      loadingFill.style.width = Math.min(100, Math.max(0, pct)) + "%";
+      loadingText.textContent = msg || (pct + "%");
+      loadingText.classList.add("active");
+    }
+    function setLoadingDone() {
+      loadingFill.classList.remove("indeterminate");
+      loadingFill.style.width = "100%";
+      loadingText.textContent = "done ✓";
+      loadingText.classList.remove("active");
+      // optional auto-reset after 1.5s
+      setTimeout(() => {
+        if (!loadingFill.classList.contains("indeterminate")) {
+          loadingFill.style.width = "0%";
+          loadingText.textContent = "idle — waiting for image";
+          loadingText.classList.remove("active");
+        }
+      }, 1500);
+    }
+    function setLoadingIdle() {
+      loadingFill.classList.remove("indeterminate");
+      loadingFill.style.width = "0%";
+      loadingText.textContent = "idle — waiting for image";
+      loadingText.classList.remove("active");
+    }
+
+    /* ===== DRAW BOXES ===== */
     function drawBoxes(detections, width, height) {
       canvas.width = width;
       canvas.height = height;
@@ -571,53 +707,143 @@
       });
     }
 
+    /* ===== SEND BLOB WITH LOADING BAR ===== */
     async function sendBlob(blob, width, height) {
+      // Reset any ongoing progress and start indeterminate
+      setLoadingIndeterminate("uploading & analysing…");
+
       const form = new FormData();
       form.append("file", blob, "frame.jpg");
-      const res = await fetch("/predict", { method: "POST", body: form });
-      const data = await res.json();
-      drawBoxes(data.detections || [], width, height);
-      statusEl.textContent = data.count
-        ? "Detected: " + data.detections.map(d => `${d.defect} (${(d.confidence * 100).toFixed(0)}%)`).join(", ")
-        : "No defects detected";
+
+      try {
+        const res = await fetch("/predict", { method: "POST", body: form });
+        if (!res.ok) throw new Error("Server responded " + res.status);
+        const data = await res.json();
+
+        // fake progress to 100%
+        setLoadingProgress(100, "drawing boxes…");
+        drawBoxes(data.detections || [], width, height);
+
+        if (data.count) {
+          statusEl.textContent = "Detected: " + data.detections.map(d => `${d.defect} (${(d.confidence * 100).toFixed(0)}%)`).join(", ");
+        } else {
+          statusEl.textContent = "No defects detected";
+        }
+        setLoadingDone();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "⚠️ Detection failed — is the server running?";
+        setLoadingIdle();
+      }
     }
 
-    document.getElementById("fileInput").addEventListener("change", async (e) => {
+    /* ===== FILE UPLOAD — refresh / reset previous state ===== */
+    fileInput.addEventListener("change", async (e) => {
+      // 1. stop any live camera loop
       stopCamera();
+
+      // 2. clear previous overlay
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) {
+        // user cancelled file dialog — reset everything
+        preview.style.display = "none";
+        video.style.display = "none";
+        statusEl.textContent = "Upload a fabric image or start live camera to inspect for defects.";
+        setLoadingIdle();
+        return;
+      }
+
+      // 3. reset status, start loading
+      statusEl.textContent = "Loading image…";
+      setLoadingIndeterminate("reading image…");
+
+      // 4. show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
       video.style.display = "none";
-      preview.onload = () => sendBlob(file, preview.naturalWidth, preview.naturalHeight);
+
+      preview.onload = () => {
+        // small delay so progress is visible
+        setTimeout(() => {
+          sendBlob(file, preview.naturalWidth, preview.naturalHeight);
+        }, 120);
+      };
+      // handle load error
+      preview.onerror = () => {
+        statusEl.textContent = "⚠️ Could not load that image file.";
+        setLoadingIdle();
+      };
     });
 
+    /* ===== LIVE CAMERA — toggle / reset ===== */
     async function toggleCamera() {
-      if (stream) return stopCamera();
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      video.srcObject = stream;
-      video.style.display = "block";
-      preview.style.display = "none";
-      camBtn.textContent = "Stop Camera";
-      camBtn.classList.add("stop");
+      // if already on → stop
+      if (stream) {
+        stopCamera();
+        return;
+      }
 
-      const offscreen = document.createElement("canvas");
-      loopTimer = setInterval(() => {
-        if (!video.videoWidth) return;
-        offscreen.width = video.videoWidth;
-        offscreen.height = video.videoHeight;
-        offscreen.getContext("2d").drawImage(video, 0, 0);
-        offscreen.toBlob(blob => sendBlob(blob, video.videoWidth, video.videoHeight), "image/jpeg", 0.7);
-      }, 350);
+      // reset previous UI
+      fileInput.value = "";          // clear file input so same file can be re‑picked
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      preview.style.display = "none";
+      statusEl.textContent = "Starting camera…";
+      setLoadingIndeterminate("starting camera…");
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        video.style.display = "block";
+        preview.style.display = "none";
+        camBtn.textContent = "Stop Camera";
+        camBtn.classList.add("stop");
+        setLoadingIdle();
+
+        // offscreen canvas for frame capture
+        const offscreen = document.createElement("canvas");
+        loopTimer = setInterval(() => {
+          if (!video.videoWidth) return;
+          offscreen.width = video.videoWidth;
+          offscreen.height = video.videoHeight;
+          offscreen.getContext("2d").drawImage(video, 0, 0);
+          offscreen.toBlob(blob => {
+            if (blob) sendBlob(blob, video.videoWidth, video.videoHeight);
+          }, "image/jpeg", 0.7);
+        }, 350);
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "⚠️ Camera access denied or unavailable.";
+        setLoadingIdle();
+        stopCamera(); // make sure state is clean
+      }
     }
 
     function stopCamera() {
-      if (loopTimer) clearInterval(loopTimer);
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      stream = null;
+      if (loopTimer) {
+        clearInterval(loopTimer);
+        loopTimer = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      video.style.display = "none";
       camBtn.textContent = "Start Live Camera";
       camBtn.classList.remove("stop");
+      // don't reset loading here — caller decides
     }
+
+    // Ensure clean state if user navigates away
+    window.addEventListener("beforeunload", () => {
+      if (loopTimer) clearInterval(loopTimer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    });
+
+    // Init loading bar
+    setLoadingIdle();
   </script>
 </body>
 </html>
